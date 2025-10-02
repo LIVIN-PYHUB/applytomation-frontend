@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+#root {
+  height: 100vh;
+ 
+  color: #353c42;
+  font-size: 16px;
+  font-family:"Inter", sans-serif !important;
+}
+body {
+  font-size: 16px;
+  line-height: normal;
+  font-weight: 400;
+  letter-spacing: normal;
+  font-family: "Inter", sans-serif !important;
+}
+/* Font Family in Ant Layout */
+[class^="ant-"] {
+  font-family: "Inter", sans-serif !important;
+}

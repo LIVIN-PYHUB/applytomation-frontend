@@ -21,14 +21,14 @@ input[type="password"]:-webkit-autofill:focus {
 
 /* Hide scrollbar by default */
 ::-webkit-scrollbar {
-  width: 1em;
-  height: 1em;
+  width: 6px;
+  height: 6px;
 }
 
 /* Show scrollbar on hover */
 *:hover::-webkit-scrollbar {
-  width: 6px; /* Adjust width as needed */
-  height: 6px; /* Adjust height as needed */
+  width: 6px;
+  height: 6px;
 }
 
 /* Scrollbar track (transparent) */
@@ -58,7 +58,7 @@ input[type="password"]:-webkit-autofill:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255,255,255,0.4);
+  background-color: rgba(255, 255, 255, 0.4);
   z-index: 1;
 }
 .loader-content {
@@ -82,12 +82,18 @@ input[type="password"]:-webkit-autofill:focus {
   stroke-dasharray: 210;
   stroke-dashoffset: 210;
   stroke-linecap: round;
-  animation: loading_spinner_circle 1.7s cubic-bezier(0.445,0.05,0.55,0.95) infinite;
+  animation: loading_spinner_circle 1.7s cubic-bezier(0.445, 0.05, 0.55, 0.95)
+    infinite;
   transform: translateZ(0);
   transform-origin: center;
   will-change: stroke-dashoffset;
 }
-
+.layout-container {
+  max-width: 1400px;
+  margin: 0 auto; /* centers horizontally */
+  width: 100%; /* responsive */
+  overflow-x: auto; /* scroll horizontally if overflow */
+}
 @keyframes loading_spinner_spin {
   from {
     transform: rotate(0deg);
@@ -115,3 +121,67 @@ input[type="password"]:-webkit-autofill:focus {
     transform: scaleY(-1) rotate(-32deg);
   }
 }
+
+.ant-select-selector {
+  border-radius: 10px !important;
+  /* height: 40px !important; */
+  display: flex;
+  align-items: center; /* centers text vertically */
+  font-weight: normal;
+}
+.ant-select-dropdown .ant-select-item {
+  min-height: 40px !important;
+}
+.ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled){
+  background: #009900;
+  color:white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  font-weight: normal;
+  margin-top: 4px;
+  margin-bottom: 4px;
+
+}
+/* Hovered option */
+.ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: #009900 !important;
+  color: white !important;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  font-weight: normal;
+}
+.form-control .ant-input-affix-wrapper {
+  height: 40px !important;
+  border-radius: 10px !important;
+}
+.form-control .ant-input-affix-wrapper input::placeholder {
+  color: #768EA7 !important;
+}
+
+/* table style */
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: transparent !important;
+  
+  color: #768EA7 !important;
+  border-top : none;
+  border-right : none;
+  border-left : none;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+.ant-table-wrapper .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #e5e7eb !important;
+ 
+}
+.ant-upload-wrapper .ant-upload-drag .ant-upload {
+  padding: 1px !important;
+}
+.ant-card .ant-card-body {
+  padding: 0px;
+}
+

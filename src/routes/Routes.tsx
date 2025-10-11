@@ -5,8 +5,14 @@ import type { RouteObject } from "react-router-dom";
 import UnAuthRoutes from "./UnAuthRoutes";
 import AuthRoutes from "./AuthRoutes";
 import Loadable from "../components/Loadable";
+import MainLayout from "../layout/MainLayout";
 
 const Login = Loadable(lazy(() => import("../pages/login")));
+const Home = Loadable(lazy(() => import("../pages/home")));
+const Companies = Loadable(lazy(() => import("../pages/companies")));
+const Profile = Loadable(lazy(() => import("../pages/profile")));
+const History = Loadable(lazy(() => import("../pages/history")));
+const Configure = Loadable(lazy(() => import("../pages/configure")));
 
 const routes: RouteObject[] = [
   {
@@ -19,12 +25,33 @@ const routes: RouteObject[] = [
     element: <AuthRoutes />,
     children: [
       {
-        index: true,
-        element: (
-          <>
-            <div className="text-black">Main Layout</div>
-          </>
-        ),
+        element: <MainLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/home" />,
+          },
+          {
+            path: "home",
+            element: <Home />,
+          },
+          {
+            path: "companies",
+            element: <Companies />,
+          },
+          {
+            path: "history",
+            element: <History />,
+          },
+          {
+            path: "profile",
+            element: <Profile />,
+          },
+          {
+            path: "configure",
+            element: <Configure />,
+          },
+        ],
       },
     ],
   },

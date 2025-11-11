@@ -102,7 +102,7 @@ export default function Resumes() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       {toast && (
         <Toast
           message={toast.message}

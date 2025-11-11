@@ -255,7 +255,7 @@ export default function Companies() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       <ToastContainer toasts={toasts || []} onClose={removeToast} />
       
       {/* Header */}

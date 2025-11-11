@@ -44,8 +44,14 @@ export default function Home() {
     location: '',
     salary: '',
   });
+  const [filterOptions, setFilterOptions] = useState({
+    industries: [] as string[],
+    locations: [] as string[],
+    salaryRanges: [] as Array<{ label: string; min: number; max: number }>,
+  });
 
   useEffect(() => {
+    fetchFilterOptions();
     fetchApplications();
     fetchJobRecommendations();
     
@@ -60,6 +66,32 @@ export default function Home() {
       window.removeEventListener('refresh-applications', handleRefresh);
     };
   }, []);
+
+  useEffect(() => {
+    // Refetch recommendations when filters change (but not on initial mount)
+    if (filterOptions.industries.length > 0 || filterOptions.locations.length > 0) {
+      fetchJobRecommendations();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.industry, filters.location, filters.salary]);
+
+  const fetchFilterOptions = async () => {
+    try {
+      const [industriesRes, locationsRes, salaryRangesRes] = await Promise.all([
+        careerPortalsApi.getIndustries(),
+        careerPortalsApi.getLocations(),
+        careerPortalsApi.getSalaryRanges(),
+      ]);
+      
+      setFilterOptions({
+        industries: industriesRes.data || [],
+        locations: locationsRes.data || [],
+        salaryRanges: salaryRangesRes.data?.ranges || [],
+      });
+    } catch (error) {
+      console.error('Error fetching filter options:', error);
+    }
+  };
 
   const fetchApplications = async () => {
     try {
@@ -90,9 +122,28 @@ export default function Home() {
         return;
       }
       
-      // Get recommendations for the latest resume
+      // Parse salary filter
+      let salaryMin: number | undefined;
+      let salaryMax: number | undefined;
+      if (filters.salary) {
+        // Parse salary range (e.g., "100-150" -> min: 100000, max: 150000)
+        const parts = filters.salary.split('-');
+        if (parts.length === 2) {
+          salaryMin = parseFloat(parts[0]) * 1000; // Convert to actual salary
+          salaryMax = parseFloat(parts[1]) * 1000;
+        }
+      }
+      
+      // Build filter object
+      const filterParams: any = {};
+      if (filters.industry) filterParams.industry = filters.industry;
+      if (filters.location) filterParams.location = filters.location;
+      if (salaryMin !== undefined) filterParams.salary_min = salaryMin;
+      if (salaryMax !== undefined) filterParams.salary_max = salaryMax;
+      
+      // Get recommendations for the latest resume with filters
       const latestResume = resumes[0];
-      const response = await jobMatchesApi.getRecommendations(userId, latestResume.id, 20);
+      const response = await jobMatchesApi.getRecommendations(userId, latestResume.id, 20, filterParams);
       const recommendations = response.data || [];
       setJobRecommendations(recommendations);
       
@@ -305,7 +356,7 @@ export default function Home() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       <ToastContainer toasts={toasts || []} onClose={removeToast} />
       
       {showConfirmModal && (
@@ -382,8 +433,11 @@ export default function Home() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-colors"
               >
                 <option value="">All Industries</option>
-                <option value="technology">Technology</option>
-                <option value="finance">Finance</option>
+                {filterOptions.industries.map((industry) => (
+                  <option key={industry} value={industry}>
+                    {industry}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="flex-1 min-w-[180px]">
@@ -394,8 +448,11 @@ export default function Home() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-colors"
               >
                 <option value="">All Locations</option>
-                <option value="san-francisco">San Francisco, CA</option>
-                <option value="new-york">New York, NY</option>
+                {filterOptions.locations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="flex-1 min-w-[180px]">
@@ -406,8 +463,11 @@ export default function Home() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-colors"
               >
                 <option value="">All Salaries</option>
-                <option value="100-150">$100k - $150k</option>
-                <option value="150-200">$150k - $200k</option>
+                {filterOptions.salaryRanges.map((range, index) => (
+                  <option key={index} value={`${range.min / 1000}-${range.max / 1000}`}>
+                    {range.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

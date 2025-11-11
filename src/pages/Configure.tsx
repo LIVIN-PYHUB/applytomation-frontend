@@ -251,7 +251,7 @@ export default function Configure() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="w-full">
       {toast && (
         <Toast
           message={toast.message}

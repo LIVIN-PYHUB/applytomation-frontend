@@ -102,6 +102,9 @@ export const careerPortalsApi = {
   update: (id: number, data: any) => api.put(`/masters/${id}`, data),
   delete: (id: number) => api.delete(`/masters/${id}`),
   discoverIndia: (maxResults?: number) => api.post(`/masters/discover-india?max_results=${maxResults || 50}`),
+  getIndustries: () => api.get('/masters/filter-options/industries'),
+  getLocations: () => api.get('/masters/filter-options/locations'),
+  getSalaryRanges: () => api.get('/masters/filter-options/salary-ranges'),
 };
 
 // Master Data API
@@ -150,8 +153,8 @@ export const notificationsApi = {
 
 // Job Matches API
 export const jobMatchesApi = {
-  getRecommendations: (userId: number, resumeId?: number, limit?: number) =>
-    api.get(`/job-matches/recommendations/${userId}`, { params: { resume_id: resumeId, limit } }),
+  getRecommendations: (userId: number, resumeId?: number, limit?: number, filters?: { industry?: string; location?: string; salary_min?: number; salary_max?: number }) =>
+    api.get(`/job-matches/recommendations/${userId}`, { params: { resume_id: resumeId, limit, ...filters } }),
   applyToJob: (userId: number, data: { career_portal_id: number; resume_id?: number; job_title?: string; notes?: string }) =>
     api.post(`/job-matches/apply/${userId}`, null, { params: data }),
   getMatches: (userId: number, params?: { resume_id?: number; skip?: number; limit?: number }) =>

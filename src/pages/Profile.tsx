@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userApi } from '../services/api';
 import type { User } from '../types';
-import { User as UserIcon, Mail, Phone, MapPin, LogOut, Settings, Edit2, Save, X } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, MapPin, LogOut, Settings, Edit2, Save, X, Crown, Sparkles, Zap, TrendingUp, CheckCircle2 } from 'lucide-react';
 import Toast from '../components/Toast';
 import Loading, { LoadingSpinner } from '../components/Loading';
 
@@ -72,32 +72,32 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-            <UserIcon className="w-5 h-5 text-blue-600" />
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200 shadow-sm">
+            <UserIcon className="w-6 h-6 text-blue-700" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-            <p className="text-gray-600 text-sm mt-1">Manage your account settings and preferences</p>
+            <h1 className="text-3xl font-black text-gray-900 mb-1">Profile</h1>
+            <p className="text-gray-600 text-sm">Manage your account settings and preferences</p>
           </div>
         </div>
       </div>
 
       {/* Personal Information */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-              <UserIcon className="w-5 h-5 text-blue-600" />
+            <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+              <UserIcon className="w-6 h-6 text-blue-700" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
-              <p className="text-gray-600 text-sm">Update your personal details</p>
+              <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
+              <p className="text-gray-600 text-sm mt-0.5">Update your personal details</p>
             </div>
           </div>
           {!editing && (
@@ -199,14 +199,14 @@ export default function Profile() {
       </div>
 
       {/* Account Settings */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-            <Settings className="w-5 h-5 text-blue-600" />
+          <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+            <Settings className="w-6 h-6 text-blue-700" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Account Settings</h2>
-            <p className="text-gray-600 text-sm">Manage your account preferences</p>
+            <h2 className="text-xl font-bold text-gray-900">Account Settings</h2>
+            <p className="text-gray-600 text-sm mt-0.5">Manage your account preferences</p>
           </div>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -214,15 +214,105 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Premium Section */}
+      <div className="bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 rounded-xl border-2 border-yellow-200 p-6 mb-6 shadow-lg relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-200/30 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-200/30 rounded-full blur-2xl"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center border-2 border-yellow-300 shadow-md">
+              <Crown className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Premium Membership</h2>
+              <p className="text-gray-600 text-sm mt-0.5">Unlock advanced features and exclusive benefits</p>
+            </div>
+          </div>
+
+          {/* Coming Soon Badge */}
+          <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border-2 border-yellow-300 rounded-lg shadow-sm">
+            <Sparkles className="w-5 h-5 text-yellow-600 animate-pulse" />
+            <span className="text-sm font-bold text-yellow-700">Coming Soon</span>
+          </div>
+
+          {/* Premium Features Preview */}
+          <div className="bg-white/60 backdrop-blur-sm border border-yellow-200 rounded-xl p-5 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-600" />
+              Premium Features
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-yellow-200">
+                  <CheckCircle2 className="w-5 h-5 text-yellow-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm mb-1">Unlimited Applications</p>
+                  <p className="text-xs text-gray-600">Apply to unlimited jobs without restrictions</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-yellow-200">
+                  <CheckCircle2 className="w-5 h-5 text-yellow-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm mb-1">Priority Support</p>
+                  <p className="text-xs text-gray-600">Get 24/7 priority customer support</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-yellow-200">
+                  <CheckCircle2 className="w-5 h-5 text-yellow-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm mb-1">Advanced Analytics</p>
+                  <p className="text-xs text-gray-600">Detailed insights and performance metrics</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-yellow-200">
+                  <CheckCircle2 className="w-5 h-5 text-yellow-700" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm mb-1">AI-Powered Matching</p>
+                  <p className="text-xs text-gray-600">Enhanced job matching with AI technology</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Indicator */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Development Progress</span>
+              <span className="text-sm font-bold text-yellow-700">75%</span>
+            </div>
+            <div className="w-full bg-white/60 rounded-full h-2.5 border border-yellow-200">
+              <div className="bg-gradient-to-r from-yellow-400 to-amber-500 h-2.5 rounded-full animate-pulse" style={{ width: '75%' }}></div>
+            </div>
+          </div>
+
+          {/* Info Message */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              <span className="font-semibold text-blue-900">We're working hard!</span> Premium membership is currently in development. 
+              Stay tuned for updates and be among the first to experience our premium features when they launch.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Logout Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-            <LogOut className="w-5 h-5 text-red-600" />
+          <div className="w-11 h-11 bg-red-100 rounded-xl flex items-center justify-center border border-red-200">
+            <LogOut className="w-6 h-6 text-red-700" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Sign Out</h2>
-            <p className="text-gray-600 text-sm">Sign out from your account</p>
+            <h2 className="text-xl font-bold text-gray-900">Sign Out</h2>
+            <p className="text-gray-600 text-sm mt-0.5">Sign out from your account</p>
           </div>
         </div>
         <button

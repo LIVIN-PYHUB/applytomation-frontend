@@ -57,19 +57,25 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <Link to="/home" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl font-bold">A</span>
+            <Link 
+              to="/home" 
+              className="flex items-center gap-3 group transition-transform hover:scale-105"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <span className="text-white text-2xl font-black">A</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">APPLYTOMATION</span>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-gray-900 leading-tight">APPLYTOMATION</span>
+                <span className="text-xs text-gray-500 font-medium">Job Automation Portal</span>
+              </div>
             </Link>
 
             {/* Navigation */}
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -77,18 +83,23 @@ export default function Layout({ children }: LayoutProps) {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 font-medium ${
                       isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
+                        : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
                     }`}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="hidden sm:inline">{item.label}</span>
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : ''}`} />
+                    <span className="hidden sm:inline text-sm">{item.label}</span>
+                    {isActive && (
+                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"></div>
+                    )}
                   </Link>
                 );
               })}
-              <NotificationCenter />
+              <div className="ml-2 pl-2 border-l border-gray-200">
+                <NotificationCenter />
+              </div>
             </nav>
           </div>
         </div>

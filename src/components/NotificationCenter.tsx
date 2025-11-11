@@ -44,7 +44,16 @@ export default function NotificationCenter() {
     // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     
-    return () => clearInterval(interval);
+    // Listen for manual refresh events
+    const handleRefresh = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('refresh-notifications', handleRefresh);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('refresh-notifications', handleRefresh);
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -118,19 +127,20 @@ export default function NotificationCenter() {
   };
 
   const getIcon = (type: string) => {
+    const iconClass = "w-5 h-5";
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center border border-green-200"><CheckCircle className={`${iconClass} text-green-700`} /></div>;
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-600" />;
+        return <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center border border-red-200"><AlertCircle className={`${iconClass} text-red-700`} /></div>;
       case 'warning':
-        return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+        return <div className="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center border border-yellow-200"><AlertCircle className={`${iconClass} text-yellow-700`} /></div>;
       case 'job_match':
-        return <Info className="w-5 h-5 text-blue-600" />;
+        return <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-200"><Info className={`${iconClass} text-blue-700`} /></div>;
       case 'application':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center border border-green-200"><CheckCircle className={`${iconClass} text-green-700`} /></div>;
       default:
-        return <Info className="w-5 h-5 text-blue-600" />;
+        return <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-200"><Info className={`${iconClass} text-blue-700`} /></div>;
     }
   };
 
@@ -153,11 +163,11 @@ export default function NotificationCenter() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900"
+        className="relative p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
       >
-        <Bell className="w-6 h-6" />
+        <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-5 h-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md border-2 border-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -169,21 +179,33 @@ export default function NotificationCenter() {
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">Notifications</h3>
+          <div className="absolute right-0 mt-2 w-[420px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 max-h-[600px] overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-gray-200 bg-blue-50/50 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-200">
+                  <Bell className="w-5 h-5 text-blue-700" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-gray-900 text-lg">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="px-2.5 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-sm">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </div>
+              </div>
               <div className="flex gap-2">
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-xs text-blue-600 hover:text-blue-800"
+                    className="text-xs text-blue-600 hover:text-blue-700 font-semibold px-3 py-1.5 hover:bg-blue-100 rounded-lg transition-colors"
                   >
                     Mark all read
                   </button>
                 )}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-500 hover:text-gray-700 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -192,40 +214,54 @@ export default function NotificationCenter() {
 
             <div className="overflow-y-auto flex-1">
               {loading ? (
-                <div className="p-8 text-center text-gray-500">
-                  <p>Loading notifications...</p>
+                <div className="p-12 text-center">
+                  <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+                  <p className="text-sm text-gray-600 font-medium">Loading notifications...</p>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <Bell className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p>No notifications</p>
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Bell className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 font-medium mb-1">No notifications</p>
+                  <p className="text-xs text-gray-500">You're all caught up!</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-100">
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 hover:bg-gray-50 cursor-pointer ${
-                        !notification.read ? 'bg-blue-50' : ''
+                      className={`p-4 hover:bg-blue-50/50 cursor-pointer transition-all duration-200 border-l-4 ${
+                        !notification.read 
+                          ? 'bg-blue-50/30 border-l-blue-500' 
+                          : 'bg-white border-l-transparent hover:border-l-gray-200'
                       }`}
                       onClick={() => !notification.read && markAsRead(notification.id)}
                     >
                       <div className="flex gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
+                        <div className="flex-shrink-0">
                           {getIcon(notification.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-900">{notification.message}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatDate(notification.created_at)}
+                          <p className={`text-sm leading-relaxed ${!notification.read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                            {notification.message}
                           </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <p className="text-xs text-gray-500">
+                              {formatDate(notification.created_at)}
+                            </p>
+                            {!notification.read && (
+                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            )}
+                          </div>
                         </div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             removeNotification(notification.id);
                           }}
-                          className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+                          className="flex-shrink-0 text-gray-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Remove notification"
                         >
                           <X className="w-4 h-4" />
                         </button>

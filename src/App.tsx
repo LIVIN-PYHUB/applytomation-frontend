@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Companies from "./pages/Companies";
@@ -8,12 +8,22 @@ import History from "./pages/History";
 import Profile from "./pages/Profile";
 import AdminMasters from "./pages/AdminMasters";
 import Resumes from "./pages/Resumes";
+import ComingSoon from "./pages/ComingSoon";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+import ErrorBoundary from "./components/ErrorBoundary";
+
+function ComingSoonWrapper() {
+  const [searchParams] = useSearchParams();
+  const featureName = searchParams.get('feature') || undefined;
+  const description = searchParams.get('description') || undefined;
+  return <ComingSoon featureName={featureName} description={description} />;
+}
 
 function App() {
   return (
-    <BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route
@@ -86,9 +96,20 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/coming-soon"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ComingSoonWrapper />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

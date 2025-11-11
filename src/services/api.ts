@@ -101,6 +101,7 @@ export const careerPortalsApi = {
   create: (data: any) => api.post('/masters/', data),
   update: (id: number, data: any) => api.put(`/masters/${id}`, data),
   delete: (id: number) => api.delete(`/masters/${id}`),
+  discoverIndia: (maxResults?: number) => api.post(`/masters/discover-india?max_results=${maxResults || 50}`),
 };
 
 // Master Data API
@@ -152,10 +153,23 @@ export const jobMatchesApi = {
   getRecommendations: (userId: number, resumeId?: number, limit?: number) =>
     api.get(`/job-matches/recommendations/${userId}`, { params: { resume_id: resumeId, limit } }),
   applyToJob: (userId: number, data: { career_portal_id: number; resume_id?: number; job_title?: string; notes?: string }) =>
-    api.post(`/job-matches/apply/${userId}`, data),
+    api.post(`/job-matches/apply/${userId}`, null, { params: data }),
   getMatches: (userId: number, params?: { resume_id?: number; skip?: number; limit?: number }) =>
     api.get(`/job-matches/matches/${userId}`, { params }),
   createMatch: (data: any) => api.post('/job-matches/match', data),
+  // Auto-apply to relevant jobs based on resume keywords
+  autoApply: (userId: number, params?: { resume_id?: number; min_match_score?: number; max_applications?: number; auto_send_email?: boolean }) =>
+    api.post(`/job-matches/auto-apply/${userId}`, null, { params }),
+};
+
+// Job Scraper API
+export const jobScraperApi = {
+  // Scrape jobs from career pages
+  scrape: (data: { job_title: string; location: string; min_salary?: number; min_exp?: number }) =>
+    api.post('/job-scraper/scrape', data),
+  // GET version of scrape
+  scrapeGet: (params: { job_title: string; location: string; min_salary?: number; min_exp?: number }) =>
+    api.get('/job-scraper/scrape', { params }),
 };
 
 // OTP API

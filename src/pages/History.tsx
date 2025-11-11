@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { applicationsApi } from '../services/api';
 import type { Application } from '../types';
-import { Plus, TrendingUp, Edit, Bell, X, Calendar } from 'lucide-react';
+import { Plus, TrendingUp, Edit, Bell, X, Calendar, Briefcase, Clock, CheckCircle2 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Toast from '../components/Toast';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from '../components/EnhancedToast';
+import Modal from '../components/Modal';
 import Loading from '../components/Loading';
 
 export default function History() {
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('All');
@@ -18,10 +22,66 @@ export default function History() {
   const [followUpApp, setFollowUpApp] = useState<Application | null>(null);
   const [reminderDate, setReminderDate] = useState('');
   const [reminderTime, setReminderTime] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { toasts, removeToast, success, error } = useToast();
+
+  const checkReminders = () => {
+    try {
+      const reminders = JSON.parse(localStorage.getItem('applicationReminders') || '[]');
+      const now = new Date().getTime();
+      
+      reminders.forEach((reminder: any) => {
+        const reminderTime = new Date(reminder.dateTime).getTime();
+        const timeUntilReminder = reminderTime - now;
+        
+        // Show notification if reminder is due (within 1 minute)
+        if (timeUntilReminder > 0 && timeUntilReminder <= 60000) {
+          showReminderNotification(reminder);
+        }
+        
+        // Remove past reminders (older than 1 hour)
+        if (timeUntilReminder < -3600000) {
+          const updatedReminders = reminders.filter((r: any) => r.id !== reminder.id);
+          localStorage.setItem('applicationReminders', JSON.stringify(updatedReminders));
+        }
+      });
+    } catch (err) {
+      console.error('Error checking reminders:', err);
+    }
+  };
+
+  const showReminderNotification = (reminder: any) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Application Follow-up Reminder', {
+        body: `Follow up on ${reminder.jobTitle} at ${reminder.companyName}`,
+        icon: '/favicon.ico',
+        tag: `reminder-${reminder.id}`,
+        requireInteraction: true
+      });
+      
+      // Show toast notification as well
+      success(`Reminder: Follow up on ${reminder.jobTitle} at ${reminder.companyName}`);
+    }
+  };
 
   useEffect(() => {
     fetchApplications();
+    
+    // Listen for refresh events from other pages (e.g., after auto-apply)
+    const handleRefresh = () => {
+      fetchApplications();
+    };
+    window.addEventListener('refresh-applications', handleRefresh);
+    
+    // Check for reminders on page load
+    checkReminders();
+    
+    // Check for reminders every minute
+    const reminderInterval = setInterval(checkReminders, 60000);
+    
+    return () => {
+      window.removeEventListener('refresh-applications', handleRefresh);
+      clearInterval(reminderInterval);
+    };
   }, [activeTab]);
 
   const fetchApplications = async () => {
@@ -76,12 +136,12 @@ export default function History() {
     
     try {
       await applicationsApi.update(editingApp.id, editingApp);
-      setToast({ message: '✅ Application updated successfully!', type: 'success' });
+      success('Application updated successfully!');
       setShowEditModal(false);
       setEditingApp(null);
       fetchApplications();
     } catch (error: any) {
-      setToast({ message: `❌ ${error.response?.data?.detail || 'Failed to update application'}`, type: 'error' });
+      error(error.response?.data?.detail || 'Failed to update application');
     }
   };
 
@@ -92,77 +152,86 @@ export default function History() {
 
   const handleSetReminder = async () => {
     if (!followUpApp || !reminderDate || !reminderTime) {
-      setToast({ message: 'Please select both date and time', type: 'error' });
+      error('Please select both date and time');
       return;
     }
 
     try {
+      // Validate date is not in the past
       const reminderDateTime = new Date(`${reminderDate}T${reminderTime}`);
+      const now = new Date();
+      
+      if (reminderDateTime <= now) {
+        error('Please select a future date and time');
+        return;
+      }
+
+      // Request notification permission if not already granted
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+
+      // Save reminder to backend (in notes)
+      const reminderNote = `[Reminder set for ${reminderDateTime.toLocaleString()}]`;
       await applicationsApi.update(followUpApp.id, {
         ...followUpApp,
-        notes: `${followUpApp.notes || ''}\n[Reminder set for ${reminderDateTime.toLocaleString()}]`.trim()
+        notes: `${followUpApp.notes || ''}\n${reminderNote}`.trim()
       });
       
-      // Schedule browser notification (if permission granted)
+      // Store reminder in localStorage for persistence
+      const reminderId = `reminder-${followUpApp.id}-${Date.now()}`;
+      const reminders = JSON.parse(localStorage.getItem('applicationReminders') || '[]');
+      reminders.push({
+        id: reminderId,
+        applicationId: followUpApp.id,
+        jobTitle: followUpApp.job_title,
+        companyName: followUpApp.company_name,
+        dateTime: reminderDateTime.toISOString(),
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem('applicationReminders', JSON.stringify(reminders));
+
+      // Schedule immediate notification if permission granted
       if ('Notification' in window && Notification.permission === 'granted') {
         const timeUntilReminder = reminderDateTime.getTime() - Date.now();
-        if (timeUntilReminder > 0) {
+        if (timeUntilReminder > 0 && timeUntilReminder <= 86400000) { // Only for reminders within 24 hours
           setTimeout(() => {
-            new Notification('Application Follow-up Reminder', {
-              body: `Follow up on ${followUpApp.job_title} at ${followUpApp.company_name}`,
-              icon: '/favicon.ico'
+            showReminderNotification({
+              id: reminderId,
+              jobTitle: followUpApp.job_title,
+              companyName: followUpApp.company_name
             });
           }, timeUntilReminder);
         }
-      } else if ('Notification' in window && Notification.permission !== 'denied') {
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            const timeUntilReminder = reminderDateTime.getTime() - Date.now();
-            if (timeUntilReminder > 0) {
-              setTimeout(() => {
-                new Notification('Application Follow-up Reminder', {
-                  body: `Follow up on ${followUpApp.job_title} at ${followUpApp.company_name}`,
-                  icon: '/favicon.ico'
-                });
-              }, timeUntilReminder);
-            }
-          }
-        });
       }
 
-      setToast({ message: '✅ Reminder set successfully!', type: 'success' });
+      success(`Reminder set for ${reminderDateTime.toLocaleString()}!`);
       setShowFollowUpModal(false);
       setFollowUpApp(null);
       setReminderDate('');
       setReminderTime('');
       fetchApplications();
     } catch (error: any) {
-      setToast({ message: `❌ ${error.response?.data?.detail || 'Failed to set reminder'}`, type: 'error' });
+      console.error('Error setting reminder:', error);
+      error(error.response?.data?.detail || 'Failed to set reminder');
     }
   };
 
-  const tabs = ['All', 'Interviews', 'Feedback', 'Pending'];
+  const tabs = ['All', 'Applied', 'Interviews', 'Feedback', 'Pending'];
 
   return (
     <div>
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <ToastContainer toasts={toasts || []} onClose={removeToast} />
 
       {/* Edit Modal */}
-      {showEditModal && editingApp && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Edit Application</h2>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit Application"
+        size="md"
+      >
+        {editingApp && (
+          <div className="p-6">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
@@ -170,7 +239,7 @@ export default function History() {
                   type="text"
                   value={editingApp.job_title}
                   onChange={(e) => setEditingApp({ ...editingApp, job_title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
               </div>
               <div>
@@ -179,7 +248,7 @@ export default function History() {
                   type="text"
                   value={editingApp.company_name}
                   onChange={(e) => setEditingApp({ ...editingApp, company_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
               </div>
               <div>
@@ -223,19 +292,18 @@ export default function History() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Follow-up Reminder Modal */}
-      {showFollowUpModal && followUpApp && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Set Follow-up Reminder</h2>
-              <button onClick={() => setShowFollowUpModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <Modal
+        isOpen={showFollowUpModal}
+        onClose={() => setShowFollowUpModal(false)}
+        title="Set Follow-up Reminder"
+        size="md"
+      >
+        {followUpApp && (
+          <div className="p-6">
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">
                 <strong>{followUpApp.job_title}</strong> at <strong>{followUpApp.company_name}</strong>
@@ -271,54 +339,66 @@ export default function History() {
                 Set Reminder
               </button>
               <button
-                onClick={() => setShowFollowUpModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                onClick={() => {
+                  setShowFollowUpModal(false);
+                  setReminderDate('');
+                  setReminderTime('');
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 Cancel
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Application History</h1>
-          <p className="text-gray-600">Track and manage all your job applications</p>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200 shadow-sm">
+              <Clock className="w-6 h-6 text-blue-700" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-gray-900 mb-1">Application History</h1>
+              <p className="text-gray-600 text-sm">Track and manage all your job applications</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={fetchInsights}
+              className="px-5 py-2.5 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 font-semibold transition-all shadow-sm hover:shadow-md"
+            >
+              <TrendingUp className="w-4 h-4" />
+              Insights
+            </button>
+            <button
+              onClick={() => navigate('/coming-soon?feature=New Application')}
+              className="px-5 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 flex items-center gap-2 font-semibold transition-all shadow-md hover:shadow-lg"
+            >
+              <Plus className="w-5 h-5" />
+              New Application
+            </button>
+          </div>
         </div>
-        <div className="flex gap-4">
-          <button
-            onClick={() => {/* Open new application modal */}}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            New Application
-          </button>
-          <button
-            onClick={fetchInsights}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-          >
-            <TrendingUp className="w-5 h-5" />
-            Insights
-          </button>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-medium ${
-              activeTab === tab
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+        {/* Tabs */}
+        <div className="flex gap-2 bg-gray-100 p-1.5 rounded-xl inline-flex border border-gray-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2.5 font-semibold rounded-lg transition-all ${
+                activeTab === tab
+                  ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Insights Modal */}
@@ -433,78 +513,139 @@ export default function History() {
         </div>
       )}
 
-              {/* Applications Table */}
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-800">Application List</h2>
-                  <p className="text-sm text-gray-600 mt-1">View and manage all your job applications</p>
-                </div>
-                {loading ? (
-                  <div className="bg-white rounded-lg shadow-md p-8">
-                    <Loading message="Loading application history..." />
-                  </div>
-                ) : applications.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p className="mb-2">No applications found.</p>
-                    <p className="text-sm">Create a new application to get started.</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Job Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {applications.map((app) => (
-                <tr key={app.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{app.job_title}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{app.company_name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {new Date(app.application_date).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(app.status)}`}>
-                      {app.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(app)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Edit application"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleFollowUp(app)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="Set follow-up reminder"
-                      >
-                        <Bell className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                )}
-              </div>
+      {/* Applications List */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200 bg-blue-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center border border-blue-200">
+              <Briefcase className="w-6 h-6 text-blue-700" />
             </div>
-          );
-        }
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Application List</h2>
+              <p className="text-sm text-gray-600 mt-0.5">View and manage all your job applications</p>
+            </div>
+          </div>
+        </div>
+        
+        {loading ? (
+          <div className="p-16">
+            <Loading message="Loading application history..." />
+          </div>
+        ) : applications.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-5 border border-gray-200">
+              <Briefcase className="w-10 h-10 text-gray-400" />
+            </div>
+            <p className="text-gray-700 font-semibold text-lg mb-1">No applications found</p>
+            <p className="text-sm text-gray-500 mb-6">Create a new application to get started</p>
+            <button
+              onClick={() => navigate('/coming-soon?feature=New Application')}
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2 mx-auto shadow-md hover:shadow-lg transition-all font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              New Application
+            </button>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            {applications.map((app) => (
+              <div 
+                key={app.id} 
+                className="group bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-blue-200 transition-all duration-200"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  {/* Left Section - Job Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 border border-blue-200 shadow-sm">
+                        <Briefcase className="w-7 h-7 text-blue-700" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-3 mb-3 flex-wrap">
+                          <h3 className="text-lg font-bold text-gray-900 leading-tight">{app.job_title}</h3>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`px-3 py-1.5 text-xs font-semibold rounded-lg border ${getStatusColor(app.status)} flex-shrink-0`}>
+                              {app.status}
+                            </span>
+                            {app.status === 'Applied' && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg text-xs font-medium text-green-700 flex-shrink-0">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Confirmed</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900 text-sm">{app.company_name}</span>
+                            {app.career_portal_id && (
+                              <span className="text-gray-500 text-xs">• Portal #{app.career_portal_id}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 text-xs text-gray-600 mb-3 flex-wrap">
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-lg border border-gray-200">
+                            <Clock className="w-3.5 h-3.5 text-gray-500" />
+                            {app.application_date ? (
+                              <>
+                                <span className="font-medium">{new Date(app.application_date).toLocaleDateString()}</span>
+                                <span className="text-gray-400">•</span>
+                                <span>{new Date(app.application_date).toLocaleTimeString()}</span>
+                              </>
+                            ) : (
+                              <span>Date not available</span>
+                            )}
+                          </div>
+                          <div className="px-2.5 py-1 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="font-medium">ID: #{app.id}</span>
+                          </div>
+                        </div>
+                        
+                        {app.notes && app.notes.includes('Match score') && (
+                          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-semibold text-blue-700">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            {app.notes.split('|')[0]}
+                          </div>
+                        )}
+                        
+                        {app.notes && app.notes.includes('Reminder set for') && (
+                          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-lg text-xs font-medium text-purple-700">
+                            <Bell className="w-3.5 h-3.5" />
+                            {app.notes.split('Reminder set for')[1]?.split(']')[0] && (
+                              <span>Reminder: {app.notes.split('Reminder set for')[1].split(']')[0]}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Section - Actions */}
+                  <div className="flex items-start gap-2 flex-shrink-0 pt-1">
+                    <button
+                      onClick={() => handleEdit(app)}
+                      className="p-2.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-200"
+                      title="Edit application"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleFollowUp(app)}
+                      className="p-2.5 text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all border border-transparent hover:border-gray-200"
+                      title="Set follow-up reminder"
+                    >
+                      <Bell className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 

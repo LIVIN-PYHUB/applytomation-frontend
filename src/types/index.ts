@@ -1,6 +1,7 @@
 export interface Resume {
   id: number;
   filename: string;
+  file_path: string | null;  // Path to stored resume file
   raw_text: string | null;
   keywords: string | null;
   created_at: string;
@@ -12,6 +13,7 @@ export interface CareerPortal {
   name: string;
   url: string;
   company_name: string | null;
+  company_email: string | null;  // Email for sending applications
   industry: string | null;
   country: string | null;
   city: string | null;
